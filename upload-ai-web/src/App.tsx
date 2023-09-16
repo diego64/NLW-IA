@@ -1,4 +1,4 @@
-import { Github, FileVideo, Upload, Wand2 } from 'lucide-react';
+import { Github, Wand2 } from 'lucide-react';
 import { Button } from "./components/ui/button";
 import { Separator } from './components/ui/separator';
 import { Textarea } from './components/ui/textarea';
@@ -8,14 +8,33 @@ import { Slider } from "./components/ui/slider";
 import { VideoInputForm } from './components/video-input-form';
 import { PromptSelect } from './components/prompt-select';
 import { useState } from 'react';
+import { useCompletion } from 'ai/react';
 
 export function App() {
-  function handlePromptSelected(template: string) {
-
-  }
-
   const [temperature, setTemperature] = useState(0.5)
   const [videoId, setVideoId] = useState<string | null>(null)
+
+  /*function handlePromptSelected(template: string) {
+    console.log(template);
+  }*/
+
+  const {
+    input,
+    setInput,
+    handleInputChange,
+    handleSubmit,
+    completion,
+    isLoading,
+  } = useCompletion({
+    api: 'http://localhost:3333/ai/complete',
+    body: {
+      videoId,
+      temperature,
+    },
+    headers: {
+      'Content-Type': 'application/json',
+    }
+  })
 
   return (
     <div className='min-h-screen flex flex-col'>
@@ -42,23 +61,27 @@ export function App() {
             <Textarea
               className='resize-none p-4 leading-relaxed'
               placeholder='Inclua o prompt para a IA...'
+              value={input}
+              onChange={handleInputChange}
             />
             <Textarea
               className='resize-none p-4 leading-relaxed'
               placeholder='Resultado gerado pela IA'
+              readOnly
+              value={completion}
             />
           </div>
           <p className='text-sm text-muted-foreground'>Lembre-se: Você pode utilizar a variável <code className='text-violet-400'>{'{transcription}'}</code> no seu prompt para adicionar o conteúdo da transcrição do vídeo selecionado</p>
         </div>
         <aside className='w-80 space-y-6'>
-         <VideoInputForm />
+          <VideoInputForm onVideoUploaded={setVideoId} />
 
           <Separator />
 
-          <form className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
               <Label>Prompt</Label>
-                <PromptSelect onPromptSelected={handlePromptSelected}/>
+                <PromptSelect onPromptSelected={setInput}/>
             </div>
 
             <div className="space-y-2">
@@ -84,6 +107,8 @@ export function App() {
                 min={0}
                 max={1}
                 step={0.1}
+                value={[temperature]}
+                onValueChange={value => setTemperature(value[0])}
               />
               <span className="block text-sm text-muted-foreground italic leading-relaxed">
                 Valores mais altor tendem a deixar o resultado mais criativo e com possíveis erros.
@@ -92,7 +117,7 @@ export function App() {
 
             <Separator />
 
-            <Button type="submit" className="w-full">
+            <Button disabled={isLoading} type="submit" className="w-full">
               Executar
               <Wand2 className="w-4 h-4 ml-2" />
             </Button>
